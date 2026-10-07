@@ -12,6 +12,9 @@ import (
 	"github.com/sales-system/go-real-time/internal/core/ports"
 	"github.com/sales-system/go-real-time/internal/infra/logger"
 	"github.com/sales-system/go-real-time/internal/infra/tracker"
+    "bufio"
+    "fmt"
+    "net"
 )
 
 type contextKey string
@@ -166,4 +169,19 @@ type responseWriterWrapper struct {
 func (w *responseWriterWrapper) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *responseWriterWrapper) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+    hj, ok := w.ResponseWriter.(http.Hijacker)
+    if !ok {
+        return nil, nil, fmt.Errorf("response does not implement http.Hijacker")
+    }
+    return hj.Hijack()
+}
+
+// Flush delegates to the underlying ResponseWriter if it implements http.Flusher.
+func (w *responseWriterWrapper) Flush() {
+    if f, ok := w.ResponseWriter.(http.Flusher); ok {
+        f.Flush()
+    }
 }
